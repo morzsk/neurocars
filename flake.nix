@@ -23,7 +23,7 @@
     in
     {
       packages.${system}.default = pkgs.rustPlatform.buildRustPackage {
-        pname = "boids";
+        pname = "neurocars";
         version = "0.1.0";
         src = ./.;
         cargoLock.lockFile = ./Cargo.lock;
@@ -46,8 +46,8 @@
           mkdir -p $out
           cp web/index.html web/mq_js_bundle.js $out/
           wasm-opt -Oz \
-            target/wasm32-unknown-unknown/release/boids.wasm \
-            -o $out/boids.wasm
+            target/wasm32-unknown-unknown/release/neurocars.wasm \
+            -o $out/neurocars.wasm
           runHook postInstall
         '';
       };
@@ -67,7 +67,7 @@
               ];
               text = ''
                 cargo build --release --target wasm32-unknown-unknown
-                cp target/wasm32-unknown-unknown/release/boids.wasm web/
+                cp target/wasm32-unknown-unknown/release/neurocars.wasm web/
                 echo "serving on http://localhost:8080 (ctrl-c to stop)"
                 python3 -m http.server -d web 8080
               '';
@@ -83,8 +83,8 @@
               runtimeInputs = [ pkgs.cargo ];
               text = ''
                 cargo clean
-                rm -rf result public web/boids.wasm
-                echo "cleaned: target/ result public web/boids.wasm"
+                rm -rf result public web/neurocars.wasm
+                echo "cleaned: target/ result public web/neurocars.wasm"
               '';
             }
           );
