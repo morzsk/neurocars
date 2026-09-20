@@ -1,0 +1,6 @@
+/target
+/result
+/public
+
+web/boids.wasm
+notes.md
