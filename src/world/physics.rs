@@ -1,6 +1,6 @@
 use rapier2d::prelude::*;
 
-use crate::{
+use super::{
     controls::Controls,
     racer::{Racer, RacerGeometry},
 };

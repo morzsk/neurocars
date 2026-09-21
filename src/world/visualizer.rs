@@ -4,7 +4,7 @@ use macroquad::prelude::{
 };
 use rapier2d::prelude::Vector;
 
-use crate::world::World;
+use super::World;
 
 const WHEEL_WIDTH_METERS: f32 = 0.1;
 const WHEEL_LENGTH_METERS: f32 = 0.7;

@@ -1,11 +1,18 @@
+mod bezier;
+mod controls;
+pub(crate) mod inputs;
+mod physics;
+mod racer;
+mod tracks;
+pub(crate) mod visualizer;
+
 use rapier2d::prelude::Vector;
 
-use crate::{
-    controls::Controls,
-    physics::Physics,
-    racer::{Racer, RacerGeometry},
-    tracks::Track,
-};
+use controls::Controls;
+use physics::Physics;
+use racer::Racer;
+pub(crate) use racer::RacerGeometry;
+pub(crate) use tracks::Track;
 
 pub struct World {
     physics: Physics,

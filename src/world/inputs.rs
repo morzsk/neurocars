@@ -1,6 +1,6 @@
 use macroquad::prelude::{KeyCode, is_key_down, mouse_wheel};
 
-use crate::controls::Controls;
+use super::controls::Controls;
 
 pub struct Inputs {
     pub controls: Controls,

@@ -1,17 +1,8 @@
 use macroquad::prelude::*;
 
-mod bezier;
-mod controls;
-mod inputs;
-mod physics;
-mod racer;
-mod tracks;
-mod visualizer;
 mod world;
 
-use racer::RacerGeometry;
-use tracks::Track;
-use world::World;
+use world::{RacerGeometry, Track, World, inputs, visualizer};
 
 const TRACK_SIZE_METERS: f32 = 200.0;
 const TRACK_WIDTH_METERS: f32 = 50.0;

@@ -3,7 +3,7 @@ use std::f32::consts::TAU;
 use macroquad::rand::gen_range;
 use rapier2d::prelude::{Real, Vector};
 
-use crate::bezier::QuadraticBezier;
+use super::bezier::QuadraticBezier;
 
 const RENDER_SEGMENTS_PER_CURVE: usize = 40;
 const COLLISION_SEGMENTS_PER_CURVE: usize = 5;
