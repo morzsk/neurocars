@@ -1,6 +1,4 @@
-use macroquad::prelude::{
-    DrawRectangleParams, WHITE, draw_rectangle_ex, screen_height, screen_width, vec2,
-};
+use macroquad::prelude::{DrawRectangleParams, Vec2, WHITE, draw_rectangle_ex, vec2};
 use rapier2d::prelude::{ColliderBuilder, RigidBodyBuilder, RigidBodyHandle, Vector};
 
 use crate::physics::Physics;
@@ -107,8 +105,8 @@ pub fn draw_racer(physics: &Physics, racer: &Racer) {
     let translation = position.translation;
 
     draw_rectangle_ex(
-        screen_width() / 2.0 + translation.x,
-        screen_height() / 2.0 + translation.y,
+        translation.x,
+        translation.y,
         RACER_WIDTH,
         RACER_HEIGHT,
         DrawRectangleParams {
@@ -117,4 +115,9 @@ pub fn draw_racer(physics: &Physics, racer: &Racer) {
             color: WHITE,
         },
     );
+}
+
+pub fn racer_position(physics: &Physics, racer: &Racer) -> Vec2 {
+    let translation = physics.bodies[racer.body_handle].translation();
+    vec2(translation.x, translation.y)
 }

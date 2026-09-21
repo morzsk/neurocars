@@ -1,31 +1,19 @@
 use macroquad::prelude::*;
 
 mod bezier;
+mod camera;
 pub mod physics;
 pub mod racer;
 mod track;
 
-use physics::{Physics, init_physics, step_physics};
-use racer::{AxisInput, Racer, RacerAction, draw_racer, init_racer, step_racer};
+use camera::{CameraMode, apply_camera, camera_mouse_position, init_camera, step_camera};
+use physics::{init_physics, step_physics};
+use racer::{AxisInput, RacerAction, draw_racer, init_racer, racer_position, step_racer};
 use track::{Track, add_to_track, draw_track, draw_track_preview, init_track};
 
-const TRACK_WIDTH: f32 = 75.0;
+const TRACK_WIDTH: f32 = 200.0;
 const CURVE_SEGMENTS: usize = 40;
-
-struct World {
-    physics: Physics,
-    racers: Vec<Racer>,
-}
-
-fn init_world() -> World {
-    let mut physics = init_physics();
-    let racer = init_racer(&mut physics);
-
-    World {
-        physics,
-        racers: vec![racer],
-    }
-}
+const DEFAULT_PIXELS_PER_METER: f32 = 1.0;
 
 fn axis_input(positive: KeyCode, negative: KeyCode) -> AxisInput {
     match (is_key_down(positive), is_key_down(negative)) {
@@ -37,10 +25,12 @@ fn axis_input(positive: KeyCode, negative: KeyCode) -> AxisInput {
 
 #[macroquad::main("Neurocar")]
 async fn main() {
-    let mut world = init_world();
+    let mut physics = init_physics();
+    let racer = init_racer(&mut physics);
     let mut track = None::<Track>;
     let mut pending_vertices = Vec::<Vec2>::new();
     let mut edit_mode = true;
+    let mut camera = init_camera(DEFAULT_PIXELS_PER_METER);
 
     loop {
         if is_key_pressed(KeyCode::Tab) {
@@ -56,11 +46,15 @@ async fn main() {
             }
         };
 
-        for racer in &world.racers {
-            step_racer(&mut world.physics, racer, racer_action);
-        }
+        step_racer(&mut physics, &racer, racer_action);
 
-        step_physics(&mut world.physics);
+        step_physics(&mut physics);
+
+        camera.mode = match edit_mode {
+            false => CameraMode::Follow(racer_position(&physics, &racer)),
+            true => CameraMode::Free,
+        };
+        step_camera(&mut camera);
 
         if edit_mode {
             let control_pressed =
@@ -79,23 +73,24 @@ async fn main() {
             }
 
             if is_mouse_button_pressed(MouseButton::Left) {
-                let (x, y) = mouse_position();
-                let point = vec2(x, y);
+                let point = camera_mouse_position(&camera);
 
-                if let Some(track) = track.as_mut() {
-                    pending_vertices.push(point);
+                match track.as_mut() {
+                    Some(track) => {
+                        pending_vertices.push(point);
 
-                    if let [control, end] = pending_vertices.as_slice() {
-                        add_to_track(track, *control, *end);
-                        pending_vertices.clear();
+                        if let [control, end] = pending_vertices.as_slice() {
+                            add_to_track(track, *control, *end);
+                            pending_vertices.clear();
+                        }
                     }
-                } else {
-                    track = Some(init_track(TRACK_WIDTH, point));
+                    None => track = Some(init_track(TRACK_WIDTH, point)),
                 }
             }
         }
 
         clear_background(BLACK);
+        apply_camera(&camera);
 
         if let Some(track) = &track {
             draw_track(track, CURVE_SEGMENTS);
@@ -106,8 +101,12 @@ async fn main() {
                 }
 
                 if let [control] = pending_vertices.as_slice() {
-                    let (x, y) = mouse_position();
-                    draw_track_preview(track, *control, vec2(x, y), CURVE_SEGMENTS);
+                    draw_track_preview(
+                        track,
+                        *control,
+                        camera_mouse_position(&camera),
+                        CURVE_SEGMENTS,
+                    );
                 }
             }
         }
@@ -118,9 +117,7 @@ async fn main() {
             }
         }
 
-        for racer in &world.racers {
-            draw_racer(&world.physics, racer);
-        }
+        draw_racer(&physics, &racer);
 
         next_frame().await;
     }
