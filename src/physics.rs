@@ -63,6 +63,15 @@ impl Physics {
         );
     }
 
+    pub fn add_closed_polyline_collider(&mut self, points: &[Vector]) {
+        let indices = (0..points.len())
+            .map(|index| [index as u32, ((index + 1) % points.len()) as u32])
+            .collect();
+        let collider = ColliderBuilder::polyline(points.to_vec(), Some(indices)).build();
+
+        self.colliders.insert(collider);
+    }
+
     pub fn apply_actions(&mut self, handle: RigidBodyHandle, wheelbase: Real, controls: Controls) {
         let Some(body) = self.bodies.get_mut(handle) else {
             return;

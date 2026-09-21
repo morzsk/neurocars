@@ -4,18 +4,25 @@ use crate::{
     controls::Controls,
     physics::Physics,
     racer::{Racer, RacerGeometry},
+    tracks::Track,
 };
 
 pub struct World {
     physics: Physics,
     racers: Vec<Racer>,
+    track: Track,
 }
 
 impl World {
-    pub fn new() -> Self {
+    pub fn new(track: Track) -> Self {
+        let mut physics = Physics::new();
+        physics.add_closed_polyline_collider(track.collision_boundary().inner_points());
+        physics.add_closed_polyline_collider(track.collision_boundary().outer_points());
+
         Self {
-            physics: Physics::new(),
+            physics,
             racers: Vec::new(),
+            track,
         }
     }
 
@@ -43,13 +50,11 @@ impl World {
         &self.racers
     }
 
+    pub fn track(&self) -> &Track {
+        &self.track
+    }
+
     pub fn physics(&self) -> &Physics {
         &self.physics
-    }
-}
-
-impl Default for World {
-    fn default() -> Self {
-        Self::new()
     }
 }

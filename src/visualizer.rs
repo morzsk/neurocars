@@ -1,12 +1,14 @@
 use macroquad::prelude::{
-    Camera2D, DARKGRAY, DrawRectangleParams, RED, Vec2, draw_rectangle_ex, screen_height,
-    screen_width, set_camera, set_default_camera, vec2,
+    Camera2D, DARKGRAY, DrawRectangleParams, RED, Vec2, WHITE, draw_line, draw_rectangle_ex,
+    screen_height, screen_width, set_camera, set_default_camera, vec2,
 };
+use rapier2d::prelude::Vector;
 
 use crate::world::World;
 
 const WHEEL_WIDTH_METERS: f32 = 0.1;
 const WHEEL_LENGTH_METERS: f32 = 0.7;
+const TRACK_BORDER_THICKNESS_METERS: f32 = 1.0;
 
 pub fn draw(world: &World, pixels_per_meter: f32) {
     let camera = Camera2D {
@@ -17,6 +19,9 @@ pub fn draw(world: &World, pixels_per_meter: f32) {
         ..Default::default()
     };
     set_camera(&camera);
+
+    draw_closed_polyline(world.track().render_boundary().inner_points());
+    draw_closed_polyline(world.track().render_boundary().outer_points());
 
     for racer in world.racers() {
         let Some(body) = world.physics().body(racer.physics_handle) else {
@@ -47,6 +52,23 @@ pub fn draw(world: &World, pixels_per_meter: f32) {
     }
 
     set_default_camera();
+}
+
+fn draw_closed_polyline(points: &[Vector]) {
+    for (start, end) in points
+        .iter()
+        .zip(points.iter().cycle().skip(1))
+        .take(points.len())
+    {
+        draw_line(
+            start.x,
+            start.y,
+            end.x,
+            end.y,
+            TRACK_BORDER_THICKNESS_METERS,
+            WHITE,
+        );
+    }
 }
 
 fn draw_centered_rectangle(
