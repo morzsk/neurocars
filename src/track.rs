@@ -5,36 +5,68 @@ use crate::bezier::{quadratic, quadratic_tangent};
 pub struct Track {
     pub width: f32,
     pub vertices: Vec<Vec2>,
+    controls: Vec<Vec2>,
 }
 
 pub fn init_track(width: f32, start: Vec2) -> Track {
     Track {
         width,
         vertices: vec![start],
+        controls: Vec::new(),
     }
 }
 
-pub fn add_to_track(track: &mut Track, control: Vec2, end: Vec2) {
-    track.vertices.extend([control, end]);
+pub fn add_to_track(track: &mut Track, end: Vec2) {
+    let start = *track
+        .vertices
+        .last()
+        .expect("a track always has a starting vertex");
+    let control = infer_control(track.controls.last().copied(), start, end);
+
+    track.controls.push(control);
+    track.vertices.push(end);
+}
+
+pub fn remove_from_track(track: &mut Track) {
+    track.vertices.pop();
+    track.controls.pop();
 }
 
 pub fn draw_track(track: &Track, segments: usize) {
-    for start in (0..track.vertices.len().saturating_sub(2)).step_by(2) {
-        draw_segment(
-            track.vertices[start],
-            track.vertices[start + 1],
-            track.vertices[start + 2],
-            track.width,
-            segments,
-            WHITE,
-        );
+    for (anchors, control) in track.vertices.windows(2).zip(&track.controls) {
+        let [start, end] = anchors else {
+            unreachable!();
+        };
+
+        draw_segment(*start, *control, *end, track.width, segments, WHITE);
     }
 }
 
-pub fn draw_track_preview(track: &Track, control: Vec2, end: Vec2, segments: usize) {
+pub fn draw_track_preview(track: &Track, end: Vec2, segments: usize) {
     if let Some(start) = track.vertices.last() {
+        let control = infer_control(track.controls.last().copied(), *start, end);
+
         draw_segment(*start, control, end, track.width, segments, GRAY);
     }
+}
+
+fn infer_control(previous_control: Option<Vec2>, start: Vec2, end: Vec2) -> Vec2 {
+    let chord = end - start;
+
+    if chord.length_squared() <= f32::EPSILON {
+        return start;
+    }
+
+    let Some(previous_control) = previous_control else {
+        return start + chord * 0.5;
+    };
+
+    let exit_tangent = start - previous_control;
+    if exit_tangent.length_squared() <= f32::EPSILON {
+        return start + chord * 0.5;
+    }
+
+    start + exit_tangent.normalize() * chord.length() * 0.5
 }
 
 fn draw_segment(start: Vec2, control: Vec2, end: Vec2, width: f32, segments: usize, color: Color) {
