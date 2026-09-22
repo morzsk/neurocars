@@ -9,10 +9,13 @@ mod track;
 use camera::{CameraMode, apply_camera, camera_mouse_position, init_camera, step_camera};
 use physics::{init_physics, step_physics};
 use racer::{AxisInput, RacerAction, draw_racer, init_racer, racer_position, step_racer};
-use track::{Track, add_to_track, draw_track, draw_track_preview, init_track, remove_from_track};
+use track::{
+    Track, add_to_track, draw_track, draw_track_preview, init_track, remove_from_track,
+    update_collider,
+};
 
 const TRACK_WIDTH: f32 = 200.0;
-const CURVE_SEGMENTS: usize = 40;
+const CURVE_T_STEP: f32 = 1.0 / 40.0;
 const DEFAULT_PIXELS_PER_METER: f32 = 1.0;
 
 fn axis_input(positive: KeyCode, negative: KeyCode) -> AxisInput {
@@ -34,6 +37,10 @@ async fn main() {
     loop {
         if is_key_pressed(KeyCode::Tab) {
             edit_mode = !edit_mode;
+
+            if !edit_mode && let Some(track) = track.as_mut() {
+                update_collider(track, &mut physics);
+            }
         }
 
         let racer_action = if edit_mode {
@@ -64,7 +71,10 @@ async fn main() {
                     Some(track) if track.vertices.len() > 1 => {
                         remove_from_track(track);
                     }
-                    Some(_) => track = None,
+                    Some(track_with_one_vertex) => {
+                        update_collider(track_with_one_vertex, &mut physics);
+                        track = None;
+                    }
                     None => {}
                 }
             }
@@ -74,7 +84,7 @@ async fn main() {
 
                 match track.as_mut() {
                     Some(track) => add_to_track(track, point),
-                    None => track = Some(init_track(TRACK_WIDTH, point)),
+                    None => track = Some(init_track(TRACK_WIDTH, point, CURVE_T_STEP)),
                 }
             }
         }
@@ -83,14 +93,14 @@ async fn main() {
         apply_camera(&camera);
 
         if let Some(track) = &track {
-            draw_track(track, CURVE_SEGMENTS);
+            draw_track(track);
 
             if edit_mode {
                 for vertex in &track.vertices {
                     draw_circle(vertex.x, vertex.y, 4.0, WHITE);
                 }
 
-                draw_track_preview(track, camera_mouse_position(&camera), CURVE_SEGMENTS);
+                draw_track_preview(track, camera_mouse_position(&camera));
             }
         }
 

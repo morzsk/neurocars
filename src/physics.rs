@@ -4,7 +4,7 @@ pub struct Physics {
     gravity: Vector,
     integration_parameters: IntegrationParameters,
     pipeline: PhysicsPipeline,
-    island_manager: IslandManager,
+    pub(crate) island_manager: IslandManager,
     broad_phase: DefaultBroadPhase,
     narrow_phase: NarrowPhase,
     pub(crate) bodies: RigidBodySet,
