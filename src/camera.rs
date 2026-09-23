@@ -1,6 +1,6 @@
 use macroquad::prelude::{
-    Camera2D, KeyCode, Vec2, get_frame_time, is_key_down, mouse_position, mouse_wheel,
-    screen_height, screen_width, set_camera, vec2,
+    Camera2D, KeyCode, Vec2, get_frame_time, is_key_down, is_key_pressed, mouse_position,
+    mouse_wheel, screen_height, screen_width, set_camera, vec2,
 };
 
 const MIN_PIXELS_PER_METER: f32 = 0.2;
@@ -31,8 +31,17 @@ pub fn init_camera(pixels_per_meter: f32) -> Camera {
 
 pub fn step_camera(camera: &mut Camera) {
     let (_, scroll) = mouse_wheel();
-    camera.pixels_per_meter = (camera.pixels_per_meter * SCROLL_SCALE_STEP.powf(scroll))
-        .clamp(MIN_PIXELS_PER_METER, MAX_PIXELS_PER_METER);
+    let keyboard_zoom = if is_key_pressed(KeyCode::Equal) || is_key_pressed(KeyCode::KpAdd) {
+        1.0
+    } else if is_key_pressed(KeyCode::Minus) || is_key_pressed(KeyCode::KpSubtract) {
+        -1.0
+    } else {
+        0.0
+    };
+
+    camera.pixels_per_meter = (camera.pixels_per_meter
+        * SCROLL_SCALE_STEP.powf(scroll + keyboard_zoom))
+    .clamp(MIN_PIXELS_PER_METER, MAX_PIXELS_PER_METER);
 
     match camera.mode {
         CameraMode::Follow(target) => {

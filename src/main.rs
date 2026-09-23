@@ -5,29 +5,31 @@ mod camera;
 pub mod neural;
 pub mod physics;
 pub mod racer;
+pub mod simulation;
 mod track;
 pub mod utils;
 
 use camera::{CameraMode, apply_camera, camera_mouse_position, init_camera, step_camera};
 use physics::{init_physics, step_physics};
 use racer::{
-    RacerAction, draw_racer, evaluate_racer_action, fire_sensors, init_racer, init_sensors,
-    racer_position, restart_racer, step_racer,
+    RacerAction, draw_racer, evaluate_racer_action, fire_sensors, init_sensors, racer_position,
+    step_racer,
 };
+use simulation::{Simulation, init_simulation, rerun_simulation};
 use track::{
     Track, add_to_track, draw_track, draw_track_preview, init_track, remove_from_track,
     update_collider,
 };
 
-const TRACK_WIDTH: f32 = 200.0;
+const TRACK_WIDTH: f32 = 400.0;
 const CURVE_T_STEP: f32 = 1.0 / 40.0;
 const DEFAULT_PIXELS_PER_METER: f32 = 1.0;
 
 #[macroquad::main("Neurocar")]
 async fn main() {
     let mut physics = init_physics();
-    let mut racer = init_racer(&mut physics);
-    let mut racer_sensors = init_sensors();
+    let mut spawners = Vec::<Vec2>::new();
+    let mut simulation = None::<Simulation>;
     let mut track = None::<Track>;
     let mut edit_mode = true;
     let mut camera = init_camera(DEFAULT_PIXELS_PER_METER);
@@ -41,25 +43,44 @@ async fn main() {
             }
         }
 
-        if is_key_pressed(KeyCode::R) {
-            restart_racer(&mut physics, &mut racer);
+        if simulation.is_none() && !spawners.is_empty() && is_key_pressed(KeyCode::Enter) {
+            simulation = Some(init_simulation(&mut physics, &spawners));
         }
 
-        fire_sensors(&physics, &racer, &mut racer_sensors);
+        if is_key_pressed(KeyCode::R)
+            && let Some(current_simulation) = simulation.take()
+        {
+            simulation = Some(rerun_simulation(&mut physics, current_simulation));
+        }
 
-        let racer_action = if edit_mode {
-            RacerAction::default()
-        } else {
-            evaluate_racer_action(&racer, &racer_sensors)
-        };
+        if let Some(simulation) = &simulation {
+            for simulation_racer in &simulation.racers {
+                let racer = &simulation_racer.racer;
+                let mut sensors = init_sensors();
+                fire_sensors(&physics, racer, &mut sensors);
 
-        step_racer(&mut physics, &racer, racer_action);
+                let racer_action = if edit_mode {
+                    RacerAction::default()
+                } else {
+                    evaluate_racer_action(racer, &sensors)
+                };
+
+                step_racer(&mut physics, racer, racer_action);
+            }
+        }
 
         step_physics(&mut physics);
 
-        camera.mode = match edit_mode {
-            false => CameraMode::Follow(racer_position(&physics, &racer)),
-            true => CameraMode::Free,
+        camera.mode = match (
+            edit_mode,
+            simulation
+                .as_ref()
+                .and_then(|simulation| simulation.racers.first()),
+        ) {
+            (false, Some(simulation_racer)) => {
+                CameraMode::Follow(racer_position(&physics, &simulation_racer.racer))
+            }
+            _ => CameraMode::Free,
         };
         step_camera(&mut camera);
 
@@ -88,6 +109,10 @@ async fn main() {
                     None => track = Some(init_track(TRACK_WIDTH, point, CURVE_T_STEP)),
                 }
             }
+
+            if is_mouse_button_pressed(MouseButton::Right) {
+                spawners.push(camera_mouse_position(&camera));
+            }
         }
 
         clear_background(BLACK);
@@ -105,7 +130,15 @@ async fn main() {
             }
         }
 
-        draw_racer(&physics, &racer);
+        for spawner in &spawners {
+            draw_circle(spawner.x, spawner.y, 12.0, GREEN);
+        }
+
+        if let Some(simulation) = &simulation {
+            for simulation_racer in &simulation.racers {
+                draw_racer(&physics, &simulation_racer.racer);
+            }
+        }
 
         next_frame().await;
     }

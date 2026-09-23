@@ -93,8 +93,9 @@ pub fn evaluate_racer_action(racer: &Racer, sensors: &RacerSensor) -> RacerActio
     decode_output_to_action(output)
 }
 
-pub fn init_racer(physics: &mut Physics) -> Racer {
+pub fn init_racer(physics: &mut Physics, spawn_position: Vec2) -> Racer {
     let rigid_body = RigidBodyBuilder::dynamic()
+        .translation(Vector::new(spawn_position.x, spawn_position.y))
         .linear_damping(RACER_DAMPING)
         .angular_damping(RACER_DAMPING)
         .build();
@@ -113,16 +114,14 @@ pub fn init_racer(physics: &mut Physics) -> Racer {
     }
 }
 
-pub fn restart_racer(physics: &mut Physics, racer: &mut Racer) {
+pub fn restart_racer(physics: &mut Physics, racer: &mut Racer, spawn_position: Vec2) {
     let body = &mut physics.bodies[racer.body_handle];
 
-    body.set_position(Pose::identity(), true);
+    body.set_position(Pose::translation(spawn_position.x, spawn_position.y), true);
     body.set_linvel(Vector::ZERO, true);
     body.set_angvel(0.0, true);
     body.reset_forces(true);
     body.reset_torques(true);
-
-    racer.genome = random_genome();
 }
 
 pub fn step_racer(physics: &mut Physics, racer: &Racer, action: RacerAction) {

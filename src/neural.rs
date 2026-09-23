@@ -23,6 +23,27 @@ pub fn random_genome() -> Genome {
     }
 }
 
+pub fn cross_genomes(a: &Genome, b: &Genome) -> Genome {
+    Genome {
+        weights: std::array::from_fn(|output| {
+            std::array::from_fn(|input| {
+                if gen_range(0, 2) == 0 {
+                    a.weights[output][input]
+                } else {
+                    b.weights[output][input]
+                }
+            })
+        }),
+        biases: std::array::from_fn(|output| {
+            if gen_range(0, 2) == 0 {
+                a.biases[output]
+            } else {
+                b.biases[output]
+            }
+        }),
+    }
+}
+
 pub fn encode_sensors_to_input(sensors: &RacerSensor) -> Input {
     [
         encode_sensor(sensors.left.as_ref()),
