@@ -1,5 +1,13 @@
 use rapier2d::prelude::*;
 
+#[repr(u8)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum ColliderKind {
+    Unknown = 0,
+    TrackWall = 1,
+    Racer = 2,
+}
+
 pub struct Physics {
     gravity: Vector,
     integration_parameters: IntegrationParameters,
@@ -12,6 +20,28 @@ pub struct Physics {
     impulse_joints: ImpulseJointSet,
     multibody_joints: MultibodyJointSet,
     ccd_solver: CCDSolver,
+}
+
+impl Physics {
+    pub fn cast_ray(
+        &self,
+        ray: &Ray,
+        max_distance: f32,
+        exclude_rigid_body: Option<RigidBodyHandle>,
+    ) -> Option<(ColliderHandle, f32)> {
+        let filter = match exclude_rigid_body {
+            Some(handle) => QueryFilter::default().exclude_rigid_body(handle),
+            None => QueryFilter::default(),
+        };
+        let query_pipeline = self.broad_phase.as_query_pipeline(
+            self.narrow_phase.query_dispatcher(),
+            &self.bodies,
+            &self.colliders,
+            filter,
+        );
+
+        query_pipeline.cast_ray(ray, max_distance, true)
+    }
 }
 
 pub fn init_physics() -> Physics {

@@ -2,13 +2,18 @@ use macroquad::prelude::*;
 
 mod bezier;
 mod camera;
+pub mod neural;
 pub mod physics;
 pub mod racer;
 mod track;
+pub mod utils;
 
 use camera::{CameraMode, apply_camera, camera_mouse_position, init_camera, step_camera};
 use physics::{init_physics, step_physics};
-use racer::{AxisInput, RacerAction, draw_racer, init_racer, racer_position, step_racer};
+use racer::{
+    RacerAction, draw_racer, evaluate_racer_action, fire_sensors, init_racer, init_sensors,
+    racer_position, restart_racer, step_racer,
+};
 use track::{
     Track, add_to_track, draw_track, draw_track_preview, init_track, remove_from_track,
     update_collider,
@@ -18,18 +23,11 @@ const TRACK_WIDTH: f32 = 200.0;
 const CURVE_T_STEP: f32 = 1.0 / 40.0;
 const DEFAULT_PIXELS_PER_METER: f32 = 1.0;
 
-fn axis_input(positive: KeyCode, negative: KeyCode) -> AxisInput {
-    match (is_key_down(positive), is_key_down(negative)) {
-        (true, false) => AxisInput::POSITIVE,
-        (false, true) => AxisInput::NEGATIVE,
-        _ => AxisInput::NEUTRAL,
-    }
-}
-
 #[macroquad::main("Neurocar")]
 async fn main() {
     let mut physics = init_physics();
-    let racer = init_racer(&mut physics);
+    let mut racer = init_racer(&mut physics);
+    let mut racer_sensors = init_sensors();
     let mut track = None::<Track>;
     let mut edit_mode = true;
     let mut camera = init_camera(DEFAULT_PIXELS_PER_METER);
@@ -43,13 +41,16 @@ async fn main() {
             }
         }
 
+        if is_key_pressed(KeyCode::R) {
+            restart_racer(&mut physics, &mut racer);
+        }
+
+        fire_sensors(&physics, &racer, &mut racer_sensors);
+
         let racer_action = if edit_mode {
             RacerAction::default()
         } else {
-            RacerAction {
-                throttle: axis_input(KeyCode::W, KeyCode::S),
-                steer: axis_input(KeyCode::D, KeyCode::A),
-            }
+            evaluate_racer_action(&racer, &racer_sensors)
         };
 
         step_racer(&mut physics, &racer, racer_action);

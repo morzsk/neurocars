@@ -2,7 +2,7 @@ use macroquad::prelude::{Color, GRAY, Vec2, WHITE, draw_line};
 use rapier2d::prelude::{ColliderBuilder, ColliderHandle, Vector};
 
 use crate::bezier::{quadratic, quadratic_tangent};
-use crate::physics::Physics;
+use crate::physics::{ColliderKind, Physics};
 
 pub struct Track {
     pub width: f32,
@@ -79,8 +79,12 @@ pub fn update_collider(track: &mut Track, physics: &mut Physics) {
         .map(|point| Vector::new(point.x, point.y))
         .collect();
 
-    let left_collider = ColliderBuilder::polyline(left, None).build();
-    let right_collider = ColliderBuilder::polyline(right, None).build();
+    let left_collider = ColliderBuilder::polyline(left, None)
+        .user_data(ColliderKind::TrackWall as u128)
+        .build();
+    let right_collider = ColliderBuilder::polyline(right, None)
+        .user_data(ColliderKind::TrackWall as u128)
+        .build();
 
     track
         .collider_handles
